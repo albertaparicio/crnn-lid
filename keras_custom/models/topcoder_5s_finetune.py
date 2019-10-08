@@ -1,11 +1,13 @@
-from keras.layers.core import Dense, Flatten, Dropout
 from keras.layers.convolutional import Convolution2D
+from keras.layers.core import Dense, Flatten, Dropout
 from keras.layers.normalization import BatchNormalization
 from keras.layers.pooling import MaxPooling2D
-from keras.models import Sequential, load_model
 from keras.regularizers import l2
 
+from keras.models import Sequential, load_model
+
 NAME = "topcoder_5s_finetune"
+
 
 def create_model(input_shape, config, is_training=True):
 
@@ -13,7 +15,11 @@ def create_model(input_shape, config, is_training=True):
 
     model = Sequential()
 
-    model.add(Convolution2D(16, 7, 7, W_regularizer=l2(weight_decay), activation="relu", input_shape=input_shape))
+    model.add(
+        Convolution2D(
+            16, 7, 7, W_regularizer=l2(weight_decay), activation="relu", input_shape=input_shape
+        )
+    )
     model.add(BatchNormalization())
     model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2)))
 
@@ -44,7 +50,7 @@ def create_model(input_shape, config, is_training=True):
     for ref_layer in ref_model.layers[:-2]:
         layer = model.get_layer(ref_layer.name)
         if layer:
-            print ref_layer.name
+            print(ref_layer.name)
             layer.set_weights(ref_layer.get_weights())
             layer.trainable = False
 

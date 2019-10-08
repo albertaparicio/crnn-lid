@@ -1,11 +1,11 @@
 import numpy as np
 import scipy.io.wavfile as wav
-from csv_loader import CSVLoader
 from numpy.lib import stride_tricks
 
+from .csv_loader import CSVLoader
+
+
 class Spectrogram2Loader(CSVLoader):
-
-
     def stft(self, sig, frameSize, overlapFac=0.5, window=np.hanning):
         win = window(frameSize)
         hopSize = int(frameSize - np.floor(overlapFac * frameSize))
@@ -17,14 +17,16 @@ class Spectrogram2Loader(CSVLoader):
         # zeros at end (thus samples can be fully covered by frames)
         samples = np.append(samples, np.zeros(frameSize))
 
-        frames = stride_tricks.as_strided(samples, shape=(cols, frameSize),
-                                          strides=(samples.strides[0] * hopSize, samples.strides[0])).copy()
+        frames = stride_tricks.as_strided(
+            samples,
+            shape=(cols, frameSize),
+            strides=(samples.strides[0] * hopSize, samples.strides[0]),
+        ).copy()
         frames *= win
 
         return np.fft.rfft(frames)
 
-
-    def logscale_spec(self, spec, sr=44100, factor=20., alpha=1.0, f0=0.9, fmax=1):
+    def logscale_spec(self, spec, sr=44100, factor=20.0, alpha=1.0, f0=0.9, fmax=1):
         spec = spec[:, 0:128]
         time_bins, freq_bins = np.shape(spec)
         scale = np.linspace(0, 1, freq_bins)  # ** factor
@@ -32,16 +34,22 @@ class Spectrogram2Loader(CSVLoader):
         # Voice Perturbation
         # http://ieeexplore.ieee.org/xpl/login.jsp?tp=&arnumber=650310&url=http%3A%2F%2Fieeexplore.ieee.org%2Fiel4%2F89%2F14168%2F00650310
         scale = np.array(
-            map(lambda x: x * alpha if x <= f0 else (fmax - alpha * f0) / (fmax - f0) * (x - f0) + alpha * f0, scale))
+            map(
+                lambda x: x * alpha
+                if x <= f0
+                else (fmax - alpha * f0) / (fmax - f0) * (x - f0) + alpha * f0,
+                scale,
+            )
+        )
         scale *= (freq_bins - 1) / max(scale)
 
         newspec = np.complex128(np.zeros([time_bins, freq_bins]))
-        all_freqs = np.abs(np.fft.fftfreq(freq_bins * 2, 1. / sr)[:freq_bins + 1])
+        all_freqs = np.abs(np.fft.fftfreq(freq_bins * 2, 1.0 / sr)[: freq_bins + 1])
         freqs = [0.0] * freq_bins
         totw = [0.0] * freq_bins
 
         for i in range(0, freq_bins):
-            if (i < 1 or i + 1 >= freq_bins):
+            if i < 1 or i + 1 >= freq_bins:
                 newspec[:, i] += spec[:, i]
                 freqs[i] += all_freqs[i]
                 totw[i] += 1.0
@@ -61,11 +69,10 @@ class Spectrogram2Loader(CSVLoader):
                 totw[j + 1] += w_up
 
         for i in range(len(freqs)):
-            if (totw[i] > 1e-6):
+            if totw[i] > 1e-6:
                 freqs[i] /= totw[i]
 
         return newspec, freqs
-
 
     def create_spectrogram(self, file, bin_size=1024, alpha=1):
 
@@ -74,7 +81,7 @@ class Spectrogram2Loader(CSVLoader):
 
         sshow, freq = self.logscale_spec(s, factor=1, sr=sample_rate, alpha=alpha)
         sshow = sshow[2:, :]
-        ims = 20. * np.log10(np.abs(sshow) / 10e-6)  # amplitude to decibel
+        ims = 20.0 * np.log10(np.abs(sshow) / 10e-6)  # amplitude to decibel
 
         ims = np.transpose(ims)
         ims = ims[0:128, :]  # 0-5.5khz

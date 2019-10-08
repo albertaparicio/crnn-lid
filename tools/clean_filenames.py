@@ -6,7 +6,7 @@ import argparse
 def clean(filename):
     withOutIllegalChars = re.sub("[^a-zA-Z0-9\.-_ ]", "", filename)
     withOutIllegalChars = withOutIllegalChars.replace("'", "")
-    return re.sub("[ ]{1,}", "_", withOutIllegalChars)
+    return re.sub("[ ]+", "_", withOutIllegalChars)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

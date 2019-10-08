@@ -1,8 +1,9 @@
-import numpy as np
-from scipy.ndimage import imread
-import os
 import argparse
 import csv
+
+import numpy as np
+from scipy.ndimage import imread
+
 
 def main(args):
     with open(args.csv_input, "rb") as csv_file:
@@ -14,7 +15,7 @@ def main(args):
 def check_image(image_path):
     image = imread(image_path, mode="L")
     if(np.count_nonzero(image-np.mean(image)) == 0):
-        print image_path
+        print( image_path)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

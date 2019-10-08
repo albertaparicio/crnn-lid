@@ -1,9 +1,10 @@
 import numpy as np
 from scipy.misc import imread
-from csv_loader import CSVLoader
+
+from .csv_loader import CSVLoader
+
 
 class ImageLoader(CSVLoader):
-
     def process_file(self, file_path):
 
         image = imread(file_path, mode=self.config["color_mode"])
