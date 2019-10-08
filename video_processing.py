@@ -8,9 +8,14 @@ import subprocess
 import sys
 from pathlib import Path
 
+import numpy as np
 from tqdm import tqdm
 
 from keras_custom.predict import predict
+
+# Language labels from ISO 639-1 Code
+# https://www.loc.gov/standards/iso639-2/php/code_list.php
+class_labels = ["en", "de", "fr", "es", "zh", "ru"]
 
 
 def extract_tracks(filepath: Path):
@@ -47,9 +52,11 @@ def main(args):
     for track_num, track in enumerate(sorted(streams_dir.glob("*.wav"))):
         args.input_file = track
 
-        prediction, _ = predict(args)
+        average_prob, _ = predict(args)
 
-        results[str(track_num + 1)] = prediction
+        top_idx = np.argsort(average_prob)[::-1]
+
+        results[str(track_num + 1)] = [class_labels[idx] for idx in top_idx[:3]]
 
     print(json.dumps({"channel_languages": results}, indent=4))
 

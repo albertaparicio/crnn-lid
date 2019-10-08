@@ -7,7 +7,9 @@ from keras.models import load_model
 
 from .data_loaders.SpectrogramGenerator import SpectrogramGenerator
 
-class_labels = ["EN", "DE", "FR", "ES", "CN", "RU"]
+# Language labels from ISO 639-1 Code
+# https://www.loc.gov/standards/iso639-2/php/code_list.php
+class_labels = ["en", "de", "fr", "es", "zh", "ru"]
 
 
 def predict(cli_args, verbose=False):
@@ -32,7 +34,7 @@ def predict(cli_args, verbose=False):
     if verbose:
         print(classes, class_labels[average_class], average_prob)
 
-    return class_labels[average_class], probabilities
+    return average_prob, probabilities
 
 
 if __name__ == "__main__":
