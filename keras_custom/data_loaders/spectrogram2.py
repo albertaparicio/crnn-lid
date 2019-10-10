@@ -11,9 +11,9 @@ class Spectrogram2Loader(CSVLoader):
         hopSize = int(frameSize - np.floor(overlapFac * frameSize))
 
         # zeros at beginning (thus center of 1st window should be for sample nr. 0)
-        samples = np.append(np.zeros(np.floor(frameSize / 2.0)), sig)
+        samples = np.append(np.zeros(int(np.floor(frameSize / 2.0))), sig)
         # cols for windowing
-        cols = np.ceil((len(samples) - frameSize) / float(hopSize)) + 1
+        cols = int(np.ceil((len(samples) - frameSize) / float(hopSize)) + 1)
         # zeros at end (thus samples can be fully covered by frames)
         samples = np.append(samples, np.zeros(frameSize))
 
@@ -34,11 +34,13 @@ class Spectrogram2Loader(CSVLoader):
         # Voice Perturbation
         # http://ieeexplore.ieee.org/xpl/login.jsp?tp=&arnumber=650310&url=http%3A%2F%2Fieeexplore.ieee.org%2Fiel4%2F89%2F14168%2F00650310
         scale = np.array(
-            map(
-                lambda x: x * alpha
-                if x <= f0
-                else (fmax - alpha * f0) / (fmax - f0) * (x - f0) + alpha * f0,
-                scale,
+            list(
+                map(
+                    lambda x: x * alpha
+                    if x <= f0
+                    else (fmax - alpha * f0) / (fmax - f0) * (x - f0) + alpha * f0,
+                    scale,
+                )
             )
         )
         scale *= (freq_bins - 1) / max(scale)
@@ -81,7 +83,9 @@ class Spectrogram2Loader(CSVLoader):
 
         sshow, freq = self.logscale_spec(s, factor=1, sr=sample_rate, alpha=alpha)
         sshow = sshow[2:, :]
-        ims = 20.0 * np.log10(np.abs(sshow) / 10e-6)  # amplitude to decibel
+
+        ims = 20.0 * np.log10((np.abs(sshow)+10e-12) / 10e-6)  # amplitude to decibel
+
 
         ims = np.transpose(ims)
         ims = ims[0:128, :]  # 0-5.5khz

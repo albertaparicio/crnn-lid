@@ -1,9 +1,12 @@
 import argparse
+import functools
 import glob
 import os
 import string
 import subprocess
+import time
 from collections import Counter
+from random import randint
 
 import yaml
 from create_csv import create_csv
@@ -11,9 +14,74 @@ from create_csv import create_csv
 file_counter = Counter()
 
 
+def retry(num_times=3, sleep=60, exception_type=Exception, log=None):
+    def decorator_retry(func):
+        @functools.wraps(func)
+        def wrapper_retry(*args, **kwargs):
+            for count in range(num_times):
+                try:
+                    return func(*args, **kwargs)
+                except exception_type as e:
+                    if log:
+                        log("retry")
+                        log(e)
+                    if count >= num_times - 1:
+                        if log:
+                            log("throwing")
+                        raise e
+                    time.sleep(sleep)
+
+        return wrapper_retry
+
+    return decorator_retry
+
+
+@retry(num_times=5, sleep=randint(60, 180), exception_type=subprocess.CalledProcessError, log=print)
+def download_video(source, output_path):
+    # "--retries 10",
+    # "--ignore-errors",
+    # f"--max-downloads {max_downloads}",
+    command = " ".join(
+        [
+            "youtube-dl",
+            "--force-ipv4",
+            "--download-archive downloaded.txt",
+            "--no-post-overwrites",
+            "--continue",
+            "--no-overwrites",
+            # "--sleep-interval 10",
+            # "--max-sleep-interval 60",
+            "--extract-audio",
+            "--audio-format wav",
+            f"{source}",
+            f'-o "{output_path}/%(title)s.%(ext)s"',
+        ]
+    )
+
+    subprocess.check_output(command, shell=True)
+
+
+def get_video_list(source: str) -> list:
+    video_list = subprocess.check_output(
+        " ".join(
+            [
+                "youtube-dl",
+                "--dump-json",
+                "--flat-playlist",
+                f"{source}",
+                "| jq -r '.id'",
+                "| sed 's_^_https://youtu.be/_'",
+            ]
+        ),
+        shell=True,
+    )
+
+    return video_list.decode("utf-8").strip().split("\n")
+
+
 def read_yaml(file_name):
     with open(file_name, "r") as f:
-        return yaml.load(f)
+        return yaml.load(f, Loader=yaml.FullLoader)
 
 
 def clean_filename(filename):
@@ -31,19 +99,23 @@ def download(language, source, source_name, source_type):
         playlist_archive = os.path.join(output_path_raw, "archive.txt")
 
         print("Downloading {0} {1} to {2}".format(source_type, source_name, output_path_raw))
-        command = """youtube-dl -i --download-archive {} --max-filesize 50m --no-post-overwrites --max-downloads {} --extract-audio --audio-format wav {} -o "{}/%(title)s.%(ext)s" """.format(
+        command = """youtube-dl -i --download-archive {} --max-filesize 50m --no-post-overwrites --max-downloads {} --sleep-interval 5 --max-sleep-interval 60 --extract-audio --audio-format wav {} -o "{}/%(title)s.%(ext)s" """.format(
             playlist_archive, args.max_downloads, source, output_path_raw
         )
         subprocess.call(command, shell=True)
     else:
-        if os.path.exists(output_path_raw):
-            print("skipping {0} because the target folder already exists".format(output_path_raw))
+        os.makedirs(output_path_raw, exist_ok=True)
+        already_down = len(os.listdir(output_path_raw))
+
+        if os.path.exists(output_path_raw) and already_down >= int(args.max_downloads):
+            print(f"skipping {output_path_raw} because the target folder already exists")
         else:
             print("Downloading {0} {1} to {2}".format(source_type, source_name, output_path_raw))
-            command = """youtube-dl -i --max-downloads {} --extract-audio --audio-format wav {} -o "{}/%(title)s.%(ext)s" """.format(
-                args.max_downloads, source, output_path_raw
-            )
-            subprocess.call(command, shell=True)
+
+            video_list = get_video_list(source)
+
+            for video in video_list[already_down : int(args.max_downloads)]:
+                download_video(video, output_path_raw)
 
     # Use ffmpeg to convert and split WAV files into 10 second parts
     output_path_segmented = os.path.join(args.output_path, "segmented", language, source_name)

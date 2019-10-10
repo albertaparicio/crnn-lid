@@ -3,7 +3,7 @@ import random
 from itertools import cycle
 
 import numpy as np
-from keras.utils.np_utils import to_categorical
+from tensorflow.keras.utils import to_categorical
 
 from .SpectrogramGenerator import SpectrogramGenerator
 

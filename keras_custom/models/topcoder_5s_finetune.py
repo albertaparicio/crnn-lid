@@ -1,10 +1,13 @@
-from keras.layers.convolutional import Convolution2D
-from keras.layers.core import Dense, Flatten, Dropout
-from keras.layers.normalization import BatchNormalization
-from keras.layers.pooling import MaxPooling2D
-from keras.regularizers import l2
-
-from keras.models import Sequential, load_model
+from tensorflow.keras.layers import (
+    Convolution2D,
+    Dense,
+    Flatten,
+    Dropout,
+    BatchNormalization,
+    MaxPooling2D,
+)
+from tensorflow.keras.models import Sequential, load_model
+from tensorflow.keras.regularizers import l2
 
 NAME = "topcoder_5s_finetune"
 

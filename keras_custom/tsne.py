@@ -38,7 +38,7 @@ def plot_with_labels(lowD_Weights, labels, label_names, filename):
 
 def visualize_cluster(cli_args):
 
-    config = load(open(cli_args.config, "rb"))
+    config = yaml.load(open(cli_args.config, "rb"), Loader=yaml.FullLoader)
 
     # Load Data + Labels
     DataLoader = getattr(data_loaders, config["data_loader"])

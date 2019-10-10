@@ -1,15 +1,12 @@
+import fnmatch
 import os
 import random
-import numpy as np
-from PIL import Image
-import fnmatch
-import sys
+from queue import Queue
 from subprocess import Popen, PIPE, STDOUT
 
-if (sys.version_info >= (3,0)):
-    from queue import Queue
-else:
-    from Queue import Queue
+import numpy as np
+from PIL import Image
+
 
 def recursive_glob(path, pattern):
     for root, dirs, files in os.walk(path):
@@ -18,6 +15,7 @@ def recursive_glob(path, pattern):
                 filename = os.path.abspath(os.path.join(root, basename))
                 if os.path.isfile(filename):
                     yield filename
+
 
 class SpectrogramGenerator(object):
     def __init__(self, source, config, shuffle=False, max_size=100, run_only_once=False):
@@ -38,10 +36,9 @@ class SpectrogramGenerator(object):
 
         self.files = files
 
-
     def audioToSpectrogram(self, file, pixel_per_sec, height):
 
-        '''
+        """
         V0 - Verbosity level: ignore everything
         c 1 - channel 1 / mono
         n - apply filter/effect
@@ -51,10 +48,12 @@ class SpectrogramGenerator(object):
         m - monochrom
         r - no legend
         o - output to stdout (-)
-        '''
+        """
 
         file_name = "tmp_{}.png".format(random.randint(0, 100000))
-        command = "sox -V0 '{}' -n remix 1 rate 10k spectrogram -y {} -X {} -m -r -o {}".format(file, height, pixel_per_sec, file_name)
+        command = "sox -V0 '{}' -n remix 1 rate 10k spectrogram -y {} -X {} -m -r -o {}".format(
+            file, height, pixel_per_sec, file_name
+        )
         p = Popen(command, shell=True, stdin=PIPE, stdout=PIPE, stderr=STDOUT, close_fds=True)
 
         output, errors = p.communicate()
@@ -78,12 +77,16 @@ class SpectrogramGenerator(object):
 
                 target_height, target_width, target_channels = self.config["input_shape"]
 
-                image = self.audioToSpectrogram(file, self.config["pixel_per_second"], target_height)
+                image = self.audioToSpectrogram(
+                    file, self.config["pixel_per_second"], target_height
+                )
                 image = np.expand_dims(image, -1)  # add dimension for mono channel
 
                 height, width, channels = image.shape
 
-                assert target_height == height, "Heigh mismatch {} vs {}".format(target_height, height)
+                assert target_height == height, "Heigh mismatch {} vs {}".format(
+                    target_height, height
+                )
 
                 num_segments = width // target_width
 
@@ -116,7 +119,6 @@ class SpectrogramGenerator(object):
                     if self.shuffle:
                         np.random.shuffle(self.files)
 
-
     def get_num_files(self):
 
         return len(self.files)
@@ -124,9 +126,12 @@ class SpectrogramGenerator(object):
 
 if __name__ == "__main__":
 
-    a = SpectrogramGenerator("/extra/tom/news2/raw", {"pixel_per_second": 50, "input_shape": [129, 100, 1], "batch_size": 32, "num_classes": 4}, shuffle=True)
+    a = SpectrogramGenerator(
+        "/extra/tom/news2/raw",
+        {"pixel_per_second": 50, "input_shape": [129, 100, 1], "batch_size": 32, "num_classes": 4},
+        shuffle=True,
+    )
     gen = a.get_generator()
-
 
     for a in gen:
         pass

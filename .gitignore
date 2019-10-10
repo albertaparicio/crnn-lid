@@ -1,4 +1,8 @@
 .python-version
+data/downloaded.txt*
+data/test*
+data/youtube
+testbench.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

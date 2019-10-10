@@ -1,19 +1,21 @@
 import argparse
-import numpy as np
-from yaml import load
-from sklearn.metrics import classification_report, confusion_matrix, accuracy_score, roc_curve
-from scipy.optimize import brentq
-from scipy.interpolate import interp1d
-from keras.models import load_model
-from keras.utils.np_utils import to_categorical
 
 import data_loaders
+import numpy as np
+import yaml
+from scipy.interpolate import interp1d
+from scipy.optimize import brentq
+from sklearn.metrics import classification_report, confusion_matrix, accuracy_score, roc_curve
+from tensorflow.keras.models import Model
+from tensorflow.keras.models import load_model
+from tensorflow.keras.utils import to_categorical
+
 
 def equal_error_rate(y_true, probabilities):
 
     y_one_hot = to_categorical(y_true)
     fpr, tpr, thresholds = roc_curve(y_one_hot.ravel(), probabilities.ravel())
-    eer = brentq(lambda x : 1.0 - x - interp1d(fpr, tpr)(x), 0.0, 1.0)
+    eer = brentq(lambda x: 1.0 - x - interp1d(fpr, tpr)(x), 0.0, 1.0)
 
     return eer
 
@@ -30,37 +32,42 @@ def metrics_report(y_true, y_pred, probabilities, label_names=None):
 
 def evaluate(cli_args):
 
-    config = load(open(cli_args.config, "rb"))
+    config = yaml.load(open(cli_args.config, "rb"), Loader=yaml.FullLoader)
 
     # Load Data + Labels
-    dataset_dir = config["test_data_dir"] if cli_args.use_test_set else config["validation_data_dir"]
+    dataset_dir = (
+        config["test_data_dir"] if cli_args.use_test_set else config["validation_data_dir"]
+    )
 
     DataLoader = getattr(data_loaders, config["data_loader"])
     data_generator = DataLoader(dataset_dir, config)
 
     # Model Generation
-    model = load_model(cli_args.model_dir)
-    print(model.summary())
+    model: Model = load_model(cli_args.model_dir)
+    # print(model.summary())
 
+    print("Before predict_generator")
     probabilities = model.predict_generator(
         data_generator.get_data(should_shuffle=False, is_prediction=True),
-        val_samples=data_generator.get_num_files(),
-        nb_worker=1,  # parallelization messes up data order. careful!
-        max_q_size=config["batch_size"],
-        pickle_safe=True
+        steps=data_generator.get_num_files(),
+        workers=1,  # parallelization messes up data order. careful!
+        max_queue_size=config["batch_size"],
+        use_multiprocessing=True,
     )
+    print("After predict_generator")
 
+    print("Presenting metrics report")
     y_pred = np.argmax(probabilities, axis=1)
-    y_true = data_generator.get_labels()[:len(y_pred)]
+    y_true = data_generator.get_labels()[: len(y_pred)]
     metrics_report(y_true, y_pred, probabilities, label_names=config["label_names"])
 
 
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model', dest='model_dir', required=True)
-    parser.add_argument('--config', dest='config', required=True)
-    parser.add_argument('--testset', dest='use_test_set', default=False, type=bool)
+    parser.add_argument("--model", dest="model_dir", required=True)
+    parser.add_argument("--config", dest="config", required=True)
+    parser.add_argument("--testset", dest="use_test_set", default=False, type=bool)
     cli_args = parser.parse_args()
 
     evaluate(cli_args)

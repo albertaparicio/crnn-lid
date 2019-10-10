@@ -1,13 +1,18 @@
-from keras.layers.core import Dense, Permute, Reshape
-from keras.layers.convolutional import Convolution2D
-from keras.layers.normalization import BatchNormalization
-from keras.layers.pooling import MaxPooling2D
-from keras.layers.wrappers import Bidirectional
-from keras.layers.recurrent import LSTM
-from keras.models import Sequential
-from keras.regularizers import l2
+from tensorflow.keras.layers import (
+    Dense,
+    Permute,
+    Reshape,
+    Convolution2D,
+    BatchNormalization,
+    MaxPooling2D,
+    Bidirectional,
+    LSTM,
+)
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.regularizers import l2
 
 NAME = "CRNN"
+
 
 def create_model(input_shape, config, is_training=True):
 
@@ -15,7 +20,11 @@ def create_model(input_shape, config, is_training=True):
 
     model = Sequential()
 
-    model.add(Convolution2D(64, 3, 3, W_regularizer=l2(weight_decay), activation="relu", input_shape=input_shape))
+    model.add(
+        Convolution2D(
+            64, 3, 3, W_regularizer=l2(weight_decay), activation="relu", input_shape=input_shape
+        )
+    )
     model.add(BatchNormalization())
     model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2)))
 
@@ -48,7 +57,7 @@ def create_model(input_shape, config, is_training=True):
 
     # (bs, x, y, c) --> (bs, x, y * c)
     bs, x, y, c = model.layers[-1].output_shape
-    model.add(Reshape((x, y*c)))
+    model.add(Reshape((x, y * c)))
 
     model.add(Bidirectional(LSTM(256, return_sequences=False), merge_mode="concat"))
     model.add(Dense(config["num_classes"], activation="softmax"))

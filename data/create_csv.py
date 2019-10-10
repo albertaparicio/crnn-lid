@@ -1,20 +1,12 @@
 # -*- coding: utf-8 -*-
 
-import os
 import argparse
 import fnmatch
-import math
 import itertools
+import os
 from random import shuffle
 
-LABELS = {
-    "english": 0,
-    "german": 1,
-    "french": 2,
-    "spanish": 3,
-    "chinese": 4,
-    "russian": 5,
-}
+LABELS = {"english": 0, "german": 1, "french": 2, "spanish": 3, "chinese": 4, "russian": 5}
 
 
 def recursive_glob(path, pattern):
@@ -53,7 +45,6 @@ def create_csv(root_dir, train_validation_split=0.8):
     num_train = int(smallest_count * (train_validation_split - 0.1))
     num_validation = smallest_count - num_train - num_test
 
-
     # Split datasets and shuffle languages
     training_set = []
     validation_set = []
@@ -62,8 +53,13 @@ def create_csv(root_dir, train_validation_split=0.8):
     for lang in languages:
         label = LABELS[lang]
         training_set += zip(file_names[lang][:num_train], itertools.repeat(label))
-        validation_set += zip(file_names[lang][num_train:num_train + num_validation], itertools.repeat(label))
-        test_set += zip(file_names[lang][num_train + num_validation:num_train + num_validation + num_test], itertools.repeat(label))
+        validation_set += zip(
+            file_names[lang][num_train : num_train + num_validation], itertools.repeat(label)
+        )
+        test_set += zip(
+            file_names[lang][num_train + num_validation : num_train + num_validation + num_test],
+            itertools.repeat(label),
+        )
 
     shuffle(training_set)
     shuffle(validation_set)
@@ -88,15 +84,25 @@ def create_csv(root_dir, train_validation_split=0.8):
     test_file.close()
 
     # Stats
-    print("[Training]   Files per language: {} Total: {}".format(num_train, num_train * len(languages)))
-    print("[Validation] Files per language: {} Total: {}".format(num_validation, num_validation * len(languages)))
-    print("[Testing]    Files per language: {} Total: {}".format(num_test, num_test * len(languages)))
+    print(
+        "[Training]   Files per language: {} Total: {}".format(
+            num_train, num_train * len(languages)
+        )
+    )
+    print(
+        "[Validation] Files per language: {} Total: {}".format(
+            num_validation, num_validation * len(languages)
+        )
+    )
+    print(
+        "[Testing]    Files per language: {} Total: {}".format(num_test, num_test * len(languages))
+    )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dir', dest='root_dir', default=os.getcwd())
-    parser.add_argument('--split', dest='train_validation_split', default=0.8)
+    parser.add_argument("--dir", dest="root_dir", default=os.getcwd())
+    parser.add_argument("--split", dest="train_validation_split", default=0.8)
     args = parser.parse_args()
 
     create_csv(args.root_dir, args.train_validation_split)
