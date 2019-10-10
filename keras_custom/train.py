@@ -3,17 +3,14 @@ import os
 import shutil
 from datetime import datetime
 
-import numpy as np
-import tensorflow as tf
-import yaml
-from tensorflow.core.protobuf import rewriter_config_pb2
-from tensorflow.keras.callbacks import ModelCheckpoint, TensorBoard, CSVLogger, EarlyStopping
-from tensorflow.keras.metrics import Recall, Precision, Accuracy
-from tensorflow.keras.models import Model
-from tensorflow.keras.optimizers import Adam
-
 import data_loaders as data_loaders
 import models as models
+import numpy as np
+import yaml
+from tensorflow.keras.callbacks import ModelCheckpoint, TensorBoard, CSVLogger, EarlyStopping
+from tensorflow.keras.metrics import Precision, Recall
+from tensorflow.keras.models import Model
+from tensorflow.keras.optimizers import Adam
 
 
 # os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
@@ -41,7 +38,7 @@ def train(cli_args, log_dir):
         checkpoint_filename, save_best_only=True, verbose=1, monitor="val_accuracy"
     )
 
-    tensorboard_callback = TensorBoard(log_dir=log_dir, write_images=True)
+    tensorboard_callback = TensorBoard(log_dir=log_dir, write_images=True, update_freq="batch")
     csv_logger_callback = CSVLogger(os.path.join(log_dir, "log.csv"))
     early_stopping_callback = EarlyStopping(
         monitor="val_loss", min_delta=0, patience=10, verbose=1, mode="min"
@@ -55,9 +52,11 @@ def train(cli_args, log_dir):
     optimizer = Adam(lr=config["learning_rate"], decay=1e-6)
     # optimizer = RMSprop(lr=config["learning_rate"], rho=0.9, epsilon=1e-08, decay=0.95)
     # optimizer = SGD(lr=config["learning_rate"], decay=1e-6, momentum=0.9, clipnorm=1, clipvalue=10)
-    model.compile(optimizer=optimizer,
-                  loss="categorical_crossentropy",
-                  metrics=["accuracy", "recall", "precision"])
+    model.compile(
+        optimizer=optimizer,
+        loss="categorical_crossentropy",
+        metrics=["accuracy", Precision(), Recall()],
+    )
 
     if cli_args.weights:
         model.load_weights(cli_args.weights)

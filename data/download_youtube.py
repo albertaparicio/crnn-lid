@@ -36,7 +36,9 @@ def retry(num_times=3, sleep=60, exception_type=Exception, log=None):
     return decorator_retry
 
 
-@retry(num_times=5, sleep=randint(60, 180), exception_type=subprocess.CalledProcessError, log=print)
+@retry(
+    num_times=10, sleep=randint(600, 3600), exception_type=subprocess.CalledProcessError, log=print
+)
 def download_video(source, output_path):
     # "--retries 10",
     # "--ignore-errors",
@@ -49,8 +51,8 @@ def download_video(source, output_path):
             "--no-post-overwrites",
             "--continue",
             "--no-overwrites",
-            # "--sleep-interval 10",
-            # "--max-sleep-interval 60",
+            "--sleep-interval 20",
+            "--max-sleep-interval 60",
             "--extract-audio",
             "--audio-format wav",
             f"{source}",
@@ -122,8 +124,7 @@ def download(language, source, source_name, source_type):
     segmented_files = glob.glob(os.path.join(output_path_segmented, "*.wav"))
 
     if source_type == "playlist" or not os.path.exists(output_path_segmented):
-        if not os.path.exists(output_path_segmented):
-            os.makedirs(output_path_segmented)
+        os.makedirs(output_path_segmented, exist_ok=True)
 
         files = glob.glob(os.path.join(output_path_raw, "*.wav"))
 
